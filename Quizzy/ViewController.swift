@@ -24,31 +24,41 @@ class LegacyViewController: UIViewController {
     }
     
     private func setupUI() {
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .quizzyBackground
         title = "PDF to MCQ Generator"
         
         // Upload Button
         uploadButton.setTitle("Upload PDF", for: .normal)
-        uploadButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-        uploadButton.backgroundColor = .systemBlue
+        uploadButton.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
+        uploadButton.backgroundColor = .quizzyPrimary
         uploadButton.setTitleColor(.white, for: .normal)
-        uploadButton.layer.cornerRadius = 10
+        uploadButton.layer.cornerRadius = 16
+        uploadButton.layer.shadowColor = UIColor.black.cgColor
+        uploadButton.layer.shadowOpacity = 0.15
+        uploadButton.layer.shadowRadius = 8
+        uploadButton.layer.shadowOffset = CGSize(width: 0, height: 4)
         uploadButton.addTarget(self, action: #selector(uploadButtonTapped), for: .touchUpInside)
         
         // Status Label
         statusLabel.text = "Upload a PDF to generate MCQs"
+        statusLabel.font = UIFont.systemFont(ofSize: 16, weight: .medium)
         statusLabel.textAlignment = .center
         statusLabel.numberOfLines = 0
-        statusLabel.textColor = .secondaryLabel
+        statusLabel.textColor = .quizzyTextMedium
         
         // Activity Indicator
         activityIndicator.hidesWhenStopped = true
+        activityIndicator.color = .quizzyPrimary
         
         // MCQ Container
-        mcqContainerView.backgroundColor = .systemBackground
-        mcqContainerView.layer.borderColor = UIColor.systemGray4.cgColor
+        mcqContainerView.backgroundColor = .white
+        mcqContainerView.layer.borderColor = UIColor.quizzyTextLight.cgColor
         mcqContainerView.layer.borderWidth = 1
-        mcqContainerView.layer.cornerRadius = 10
+        mcqContainerView.layer.cornerRadius = 16
+        mcqContainerView.layer.shadowColor = UIColor.black.cgColor
+        mcqContainerView.layer.shadowOpacity = 0.1
+        mcqContainerView.layer.shadowOffset = CGSize(width: 0, height: 2)
+        mcqContainerView.layer.shadowRadius = 8
         mcqContainerView.isHidden = true
         
         // MCQ ScrollView and StackView
@@ -56,6 +66,7 @@ class LegacyViewController: UIViewController {
         mcqStackView.spacing = 20
         mcqStackView.alignment = .fill
         mcqStackView.distribution = .fill
+        mcqScrollView.showsVerticalScrollIndicator = false
         mcqScrollView.addSubview(mcqStackView)
         mcqContainerView.addSubview(mcqScrollView)
         
@@ -286,109 +297,19 @@ class LegacyViewController: UIViewController {
         
         // Create and add new MCQ views
         for (index, mcq) in mcqs.enumerated() {
-            let mcqView = createMCQView(mcq: mcq, index: index)
+            let mcqView = createMCQView(for: mcq)
             mcqStackView.addArrangedSubview(mcqView)
         }
     }
     
-    private func createMCQView(mcq: MCQuestion, index: Int) -> UIView {
-        let containerView = UIView()
-        containerView.backgroundColor = .systemGray6
-        containerView.layer.cornerRadius = 8
+    private func createMCQView(for mcq: MCQuestion) -> UIView {
+        // Create our custom MCQuestionView
+        let mcqView = MCQuestionView(frame: .zero)
         
-        // Question Label
-        let questionLabel = UILabel()
-        questionLabel.text = "Q\(index + 1): \(mcq.question)"
-        questionLabel.font = UIFont.systemFont(ofSize: 16, weight: .bold)
-        questionLabel.numberOfLines = 0
+        // Configure the MCQuestionView
+        mcqView.configure(with: mcq.question, options: mcq.options, correctAnswerIndex: mcq.correctAnswerIndex)
         
-        // Options Stack
-        let optionsStack = UIStackView()
-        optionsStack.axis = .vertical
-        optionsStack.spacing = 8
-        optionsStack.alignment = .leading
-        
-        for (optionIndex, option) in mcq.options.enumerated() {
-            let optionButton = UIButton(type: .system)
-            optionButton.setTitle("\(Character(UnicodeScalar(65 + optionIndex)!)). \(option)", for: .normal)
-            optionButton.contentHorizontalAlignment = .left
-            optionButton.titleLabel?.numberOfLines = 0
-            optionButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
-            optionButton.tag = optionIndex
-            optionButton.addTarget(self, action: #selector(optionSelected(_:)), for: .touchUpInside)
-            
-            // Make button full width
-            optionButton.translatesAutoresizingMaskIntoConstraints = false
-            optionsStack.addArrangedSubview(optionButton)
-            
-            NSLayoutConstraint.activate([
-                optionButton.widthAnchor.constraint(equalTo: optionsStack.widthAnchor)
-            ])
-        }
-        
-        // Store correct answer index in container view's tag
-        containerView.tag = mcq.correctAnswerIndex
-        
-        // Add to container
-        containerView.addSubview(questionLabel)
-        containerView.addSubview(optionsStack)
-        
-        // Configure constraints
-        questionLabel.translatesAutoresizingMaskIntoConstraints = false
-        optionsStack.translatesAutoresizingMaskIntoConstraints = false
-        
-        NSLayoutConstraint.activate([
-            questionLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
-            questionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            questionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            
-            optionsStack.topAnchor.constraint(equalTo: questionLabel.bottomAnchor, constant: 12),
-            optionsStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            optionsStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            optionsStack.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12)
-        ])
-        
-        return containerView
-    }
-    
-    @objc private func optionSelected(_ sender: UIButton) {
-        // Handle option selection
-        guard let optionsStack = sender.superview as? UIStackView,
-              let containerView = optionsStack.superview else {
-            return
-        }
-        
-        let questionIndex = mcqStackView.arrangedSubviews.firstIndex(of: containerView) ?? 0
-        let optionIndex = sender.tag
-        let correctAnswerIndex = containerView.tag
-        
-        print("Selected option \(optionIndex) for question \(questionIndex)")
-        
-        // Highlight the selected option
-        for case let optionButton as UIButton in optionsStack.arrangedSubviews {
-            if optionButton == sender {
-                // Highlight selected option
-                if optionIndex == correctAnswerIndex {
-                    // Correct answer
-                    optionButton.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.2)
-                    optionButton.setTitleColor(.systemGreen, for: .normal)
-                } else {
-                    // Wrong answer
-                    optionButton.backgroundColor = UIColor.systemRed.withAlphaComponent(0.2)
-                    optionButton.setTitleColor(.systemRed, for: .normal)
-                    
-                    // Also highlight the correct answer
-                    if let correctButton = optionsStack.arrangedSubviews[correctAnswerIndex] as? UIButton {
-                        correctButton.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.2)
-                        correctButton.setTitleColor(.systemGreen, for: .normal)
-                    }
-                }
-            } else if optionButton.tag != correctAnswerIndex {
-                // Reset other options
-                optionButton.backgroundColor = .clear
-                optionButton.setTitleColor(.systemBlue, for: .normal)
-            }
-        }
+        return mcqView
     }
 }
 
