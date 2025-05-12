@@ -105,8 +105,8 @@ class GeminiAPIClient {
             
             // Try to parse the response
             do {
-                // First attempt: Parse as JSON directly
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                // Parse JSON response
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let mcqs = self?.parseGeminiResponse(json) {
                     DispatchQueue.main.async {
                         completion(.success(mcqs))
@@ -281,6 +281,7 @@ class GeminiAPIClient {
         case noDataReceived
         case responseParseFailed
         case networkError(description: String)
+        case rateLimitExceeded
         
         var errorDescription: String? {
             switch self {
@@ -294,6 +295,8 @@ class GeminiAPIClient {
                 return "Failed to parse API response"
             case .networkError(let description):
                 return "Network error: \(description)"
+            case .rateLimitExceeded:
+                return "Rate limit exceeded"
             }
         }
     }

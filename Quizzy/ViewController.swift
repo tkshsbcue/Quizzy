@@ -1,7 +1,7 @@
 import UIKit
 import PDFKit
 
-class ViewController: UIViewController {
+class LegacyViewController: UIViewController {
     
     // UI Components
     private let uploadButton = UIButton(type: .system)
@@ -393,7 +393,7 @@ class ViewController: UIViewController {
 }
 
 // MARK: - Document Picker Delegate
-extension ViewController: UIDocumentPickerDelegate {
+extension LegacyViewController: UIDocumentPickerDelegate {
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
         
